@@ -6,7 +6,6 @@ from datetime import datetime
 import bz2  # Used for L0 files
 
 app = Flask(__name__)
-server = app.server
 app.secret_key = "your_secret_key"  # Replace with a secure key
 
 # Mapping of sites (ignoring URL values if any)
@@ -301,4 +300,4 @@ def index():
                            l2_generated_url=l2_generated_url, l2_file_details=l2_file_details, error=error)
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run(debug=True)
