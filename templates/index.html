@@ -7,12 +7,26 @@
 <body>
     <h1>Most Recent File Finder</h1>
     <form method="post">
-        <label for="website_url">Website URL:</label>
-        <input type="text" id="website_url" name="website_url" value="https://data.ovh.pandonia-global-network.org/Agam/Pandora211s1/L0/" required>
+        <label for="selected_site">Select Pandora Site:</label>
+        <select name="selected_site" id="selected_site">
+            {% for site in sites %}
+                <!-- Dropdown value: location|number, display: number (location) -->
+                <option value="{{ site.location }}|{{ site.number }}">{{ site.number }} ({{ site.location }})</option>
+            {% endfor %}
+        </select>
         <button type="submit">Find Most Recent File</button>
     </form>
+
+    {% if generated_url %}
+        <p>Generated URL: <a href="{{ generated_url }}" target="_blank">{{ generated_url }}</a></p>
+    {% endif %}
+
     {% if result %}
-        <p style="color:green;">The most recent file is: {{ result }}</p>
+        <p style="color:green;">
+            The most recent file is:
+            <a href="{{ generated_url }}{{ result }}" target="_blank">{{ result }}</a>
+        </p>
+        <p>Extracted Date: <strong>{{ file_date }}</strong></p>
     {% elif error %}
         <p style="color:red;">{{ error }}</p>
     {% endif %}
