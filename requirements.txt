@@ -1,4 +1,5 @@
-beautifulsoup4
-bs4
 Flask
-requests
+Requests==2.32.3
+gunicorn
+beautifulsoup4==4.11.1
+bs4
