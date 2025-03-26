@@ -181,17 +181,23 @@ sites = [
     {"location": "Yongin", "number": "232"}
 ]
 
-def get_most_recent_file(location, pandora_number):
-    # Build the base URL using the selected location and pandora number.
+
+def get_most_recent_file_L0(location, pandora_number):
+    """
+    For the L0 directory:
+      - Build the URL: https://data.ovh.pandonia-global-network.org/<location>/Pandora<pandora_number>s1/L0/
+      - Look for files matching:
+        Pandora<pandora_number>s1_<location>_<YYYYMMDD>_L0.txt.bz2
+      - Return the most recent file's name and the extracted date (formatted as YYYY-MM-DD).
+    """
     base_url = f"https://data.ovh.pandonia-global-network.org/{location}/Pandora{pandora_number}s1/L0/"
     try:
         response = requests.get(base_url)
         response.raise_for_status()
     except Exception as e:
-        return f"Error fetching the URL: {e}", base_url, None, None
+        return f"Error fetching L0 URL: {e}", base_url, None, None
 
     soup = BeautifulSoup(response.text, 'html.parser')
-    # Dynamic regex: e.g. Pandora211s1_Agam_YYYYMMDD_L0.txt.bz2
     pattern = re.compile(rf"Pandora{pandora_number}s1_{location}_(\d{{8}})_L0\.txt\.bz2")
     files = []
     for link in soup.find_all('a'):
@@ -208,27 +214,107 @@ def get_most_recent_file(location, pandora_number):
     if files:
         files.sort(key=lambda x: x[0], reverse=True)
         latest_date, latest_file = files[0]
-        # Format the date as "YYYY-MM-DD"
         formatted_date = latest_date.strftime('%Y-%m-%d')
         return None, base_url, latest_file, formatted_date
     else:
         return None, base_url, None, None
 
+def get_l2_file_last_line_dates(location, pandora_number):
+    """
+    For the L2 directory:
+      - Build the URL: https://data.ovh.pandonia-global-network.org/<location>/Pandora<pandora_number>s1/L2/
+      - Find files matching:
+         Pandora<pandora_number>s1_<location>_<YYYYMMDD>_L2.txt.bz2
+      - Sort the found files in reverse order.
+      - For each file, download (and decompress) its content,
+        read the last non-empty line and extract the first token (timestamp).
+      - Attempt to parse the timestamp (expected format like 20240521T003828.2Z)
+        and format it as YYYY-MM-DD.
+      - Return the list of formatted timestamps.
+    """
+    base_url = f"https://data.ovh.pandonia-global-network.org/{location}/Pandora{pandora_number}s1/L2/"
+    try:
+        response = requests.get(base_url)
+        response.raise_for_status()
+    except Exception as e:
+        return f"Error fetching L2 URL: {e}", base_url, []
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    pattern = re.compile(rf"Pandora{pandora_number}s1_{location}_(\d{{8}})_L2\.txt\.bz2")
+    files = []
+    for link in soup.find_all('a'):
+        file_candidate = link.get('href') or link.get_text()
+        if file_candidate:
+            match = pattern.search(file_candidate)
+            if match:
+                date_str = match.group(1)
+                try:
+                    date_obj = datetime.strptime(date_str, '%Y%m%d')
+                    files.append((date_obj, file_candidate))
+                except ValueError:
+                    continue
+    if not files:
+        return None, base_url, []
+    
+    # Sort files in reverse order (latest first)
+    files.sort(key=lambda x: x[0], reverse=True)
+    timestamps = []
+    for _, filename in files:
+        file_url = base_url + filename
+        try:
+            file_response = requests.get(file_url)
+            file_response.raise_for_status()
+        except Exception as e:
+            # Skip file if error occurs
+            continue
+        try:
+            decompressed_data = bz2.decompress(file_response.content)
+        except Exception as e:
+            continue
+        # Decode and split into lines; get the last non-empty line.
+        lines = decompressed_data.decode('utf-8', errors='replace').splitlines()
+        non_empty_lines = [line for line in lines if line.strip() != ""]
+        if not non_empty_lines:
+            continue
+        last_line = non_empty_lines[-1]
+        tokens = last_line.split()
+        if tokens:
+            timestamp_token = tokens[0]
+            try:
+                # Try parsing the timestamp; expected format: YYYYMMDDT%H%M%S.%fZ
+                dt = datetime.strptime(timestamp_token, "%Y%m%dT%H%M%S.%fZ")
+                formatted_ts = dt.strftime("%Y-%m-%d")
+            except Exception as e:
+                # If parsing fails, return the raw token
+                formatted_ts = timestamp_token
+            timestamps.append(formatted_ts)
+    return None, base_url, timestamps
+
 @app.route("/", methods=["GET", "POST"])
 def index():
-    result = None
     error = None
-    generated_url = None
-    file_date = None
+    l0_result = None
+    l0_date = None
+    l0_generated_url = None
+    l2_generated_url = None
+    l2_timestamps = []
+
     if request.method == "POST":
-        # The dropdown value is in the format "location|pandora_number"
         selected_site = request.form.get("selected_site")
         if selected_site:
             location, pandora_number = selected_site.split("|")
-            error, generated_url, result, file_date = get_most_recent_file(location, pandora_number)
-            if not result and not error:
-                error = "No matching file found."
-    return render_template("index.html", sites=sites, result=result, error=error, generated_url=generated_url, file_date=file_date)
+            # Process L0 directory
+            error, l0_generated_url, l0_result, l0_date = get_most_recent_file_L0(location, pandora_number)
+            if not l0_result and not error:
+                error = "No matching L0 file found."
+            # Process L2 directory
+            err2, l2_generated_url, l2_timestamps = get_l2_file_last_line_dates(location, pandora_number)
+            if err2:
+                error = err2
+
+    return render_template("index.html", sites=sites, 
+                           l0_result=l0_result, l0_date=l0_date, l0_generated_url=l0_generated_url,
+                           l2_generated_url=l2_generated_url, l2_timestamps=l2_timestamps, error=error)
 
 if __name__ == "__main__":
     app.run(debug=True)

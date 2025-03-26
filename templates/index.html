@@ -2,33 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Most Recent File Finder</title>
+    <title>Pandora File Info Finder</title>
 </head>
 <body>
-    <h1>Most Recent File Finder</h1>
+    <h1>Pandora File Info Finder</h1>
     <form method="post">
         <label for="selected_site">Select Pandora Site:</label>
         <select name="selected_site" id="selected_site">
             {% for site in sites %}
-                <!-- Dropdown value: location|number, display: number (location) -->
-                <option value="{{ site.location }}|{{ site.number }}">{{ site.number }} ({{ site.location }})</option>
+                <!-- Dropdown value: location|number -->
+                <option value="{{ site.location }}|{{ site.number }}">
+                    {{ site.number }} ({{ site.location }})
+                </option>
             {% endfor %}
         </select>
-        <button type="submit">Find Most Recent File</button>
+        <button type="submit">Get File Info</button>
     </form>
 
-    {% if generated_url %}
-        <p>Generated URL: <a href="{{ generated_url }}" target="_blank">{{ generated_url }}</a></p>
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
     {% endif %}
 
-    {% if result %}
-        <p style="color:green;">
-            The most recent file is:
-            <a href="{{ generated_url }}{{ result }}" target="_blank">{{ result }}</a>
-        </p>
-        <p>Extracted Date: <strong>{{ file_date }}</strong></p>
-    {% elif error %}
-        <p style="color:red;">{{ error }}</p>
+    {% if l0_generated_url %}
+        <h2>L0 Directory</h2>
+        <p>Generated URL: <a href="{{ l0_generated_url }}" target="_blank">{{ l0_generated_url }}</a></p>
+        {% if l0_result %}
+            <p style="color:green;">
+                Most Recent L0 File:
+                <a href="{{ l0_generated_url }}{{ l0_result }}" target="_blank">{{ l0_result }}</a>
+            </p>
+            <p>Extracted Date from Filename: <strong>{{ l0_date }}</strong></p>
+        {% endif %}
+    {% endif %}
+
+    {% if l2_generated_url %}
+        <h2>L2 Directory</h2>
+        <p>Generated URL: <a href="{{ l2_generated_url }}" target="_blank">{{ l2_generated_url }}</a></p>
+        {% if l2_timestamps %}
+            <p style="color:green;">Extracted Timestamps (Dates) from L2 Files (last lines):</p>
+            <ul>
+                {% for ts in l2_timestamps %}
+                    <li>{{ ts }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No L2 file timestamps extracted.</p>
+        {% endif %}
     {% endif %}
 </body>
 </html>
