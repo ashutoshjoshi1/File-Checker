@@ -6,6 +6,7 @@ from datetime import datetime
 import bz2  # Used for L0 files
 
 app = Flask(__name__)
+server = app.server
 app.secret_key = "your_secret_key"  # Replace with a secure key
 
 # Mapping of sites (ignoring URL values if any)
@@ -220,18 +221,7 @@ def get_most_recent_file_L0(location, pandora_number):
         return None, base_url, None, None
 
 def get_l2_file_last_line_dates(location, pandora_number):
-    """
-    For the L2 directory:
-      - Build the URL: https://data.ovh.pandonia-global-network.org/<location>/Pandora<pandora_number>s1/L2/
-      - Find files matching the new pattern:
-         Pandora<pandora_number>s1_<location>_L2_<random_string>.txt
-      - Reverse the file list order.
-      - For each file, download its plain text content, read the file in reverse order to get the last non-empty line,
-        and extract the first token (expected to be a timestamp).
-      - Attempt to parse the timestamp (expected format like 20240521T003828.2Z)
-        and format it as YYYY-MM-DD.
-      - Return a list of dictionaries with each file's name and its formatted timestamp.
-    """
+
     base_url = f"https://data.ovh.pandonia-global-network.org/{location}/Pandora{pandora_number}s1/L2/"
     try:
         response = requests.get(base_url)
@@ -311,4 +301,4 @@ def index():
                            l2_generated_url=l2_generated_url, l2_file_details=l2_file_details, error=error)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run_server(debug=True)
