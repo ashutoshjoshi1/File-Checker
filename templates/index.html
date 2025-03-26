@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Most Recent File Finder</title>
+</head>
+<body>
+    <h1>Most Recent File Finder</h1>
+    <form method="post">
+        <label for="website_url">Website URL:</label>
+        <input type="text" id="website_url" name="website_url" value="https://data.ovh.pandonia-global-network.org/Agam/Pandora211s1/L0/" required>
+        <button type="submit">Find Most Recent File</button>
+    </form>
+    {% if result %}
+        <p style="color:green;">The most recent file is: {{ result }}</p>
+    {% elif error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>
