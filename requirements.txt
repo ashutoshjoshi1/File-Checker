@@ -2,4 +2,3 @@ beautifulsoup4
 bs4
 Flask
 requests
-gunicore==23.0.0
