@@ -1,53 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Pandora File Info Finder</title>
+  <meta charset="UTF-8">
+  <title>Pandora Data File Lookup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+    .results {
+      margin-top: 2em;
+      border-top: 1px solid #ccc;
+      padding-top: 1em;
+    }
+    label {
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-    <h1>Pandora File Info Finder</h1>
-    <form method="post">
-        <label for="selected_site">Select Pandora Site:</label>
-        <select name="selected_site" id="selected_site">
-            {% for site in sites %}
-                <!-- Dropdown value: location|number -->
-                <option value="{{ site.location }}|{{ site.number }}">
-                    {{ site.number }} ({{ site.location }})
-                </option>
-            {% endfor %}
-        </select>
-        <button type="submit">Get File Info</button>
-    </form>
+  <h1>Pandora Data File Lookup</h1>
+  
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+  
+  <form method="POST">
+    <label for="selected_site">Select a Site:</label>
+    <select name="selected_site" id="selected_site">
+      {% for site in sites %}
+        <option value="{{ site.location }}|{{ site.number }}">
+          {{ site.location }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Lookup</button>
+  </form>
 
-    {% if error %}
-        <p style="color:red;">{{ error }}</p>
+  {% if l0_result or l2_file_details %}
+  <div class="results">
+    {% if l0_result %}
+      <h2>L0 File Information</h2>
+      <p>
+        <strong>Base URL:</strong>
+        <a href="{{ l0_generated_url }}" target="_blank">{{ l0_generated_url }}</a>
+      </p>
+      <p>
+        <strong>Latest File:</strong> {{ l0_result }}
+      </p>
+      <p>
+        <strong>Date Extracted:</strong> {{ l0_date }}
+      </p>
     {% endif %}
 
-    {% if l0_generated_url %}
-        <h2>L0 Directory</h2>
-        <p>Generated URL: <a href="{{ l0_generated_url }}" target="_blank">{{ l0_generated_url }}</a></p>
-        {% if l0_result %}
-            <p style="color:green;">
-                Most Recent L0 File:
-                <a href="{{ l0_generated_url }}{{ l0_result }}" target="_blank">{{ l0_result }}</a>
-            </p>
-            <p>Extracted Date from Filename: <strong>{{ l0_date }}</strong></p>
-        {% endif %}
+    {% if l2_file_details %}
+      <h2>L2 File Details</h2>
+      <p>
+        <strong>Base URL:</strong>
+        <a href="{{ l2_generated_url }}" target="_blank">{{ l2_generated_url }}</a>
+      </p>
+      <ul>
+        {% for detail in l2_file_details %}
+          <li>
+            <strong>File:</strong> {{ detail.file }} - 
+            <strong>Date:</strong> {{ detail.timestamp }}
+          </li>
+        {% endfor %}
+      </ul>
     {% endif %}
-
-    {% if l2_generated_url %}
-        <h2>L2 Directory</h2>
-        <p>Generated URL: <a href="{{ l2_generated_url }}" target="_blank">{{ l2_generated_url }}</a></p>
-        {% if l2_timestamps %}
-            <p style="color:green;">Extracted Timestamps (Dates) from L2 Files (last lines):</p>
-            <ul>
-                {% for ts in l2_timestamps %}
-                    <li>{{ ts }}</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No L2 file timestamps extracted.</p>
-        {% endif %}
-    {% endif %}
+  </div>
+  {% endif %}
 </body>
 </html>
